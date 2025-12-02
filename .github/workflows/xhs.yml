@@ -39,4 +39,4 @@ jobs:
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > service_account.json
 
       - name: Run crawler
-        run: python main.py
+        run: PRINT_ONE_NOTE=1 python main.py
