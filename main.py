@@ -1,5 +1,7 @@
 import json
 import os
+import gspread
+from google.oauth2.service_account import Credentials
 from loguru import logger
 from apis.xhs_pc_apis import XHS_Apis
 from xhs_utils.common_util import init
@@ -110,27 +112,60 @@ class Data_Spider():
         logger.info(f'搜索关键词 {query} 笔记: {success}, msg: {msg}')
         return note_list, success, msg
 
+
+# ===== Google Sheet 配置 =====
+SPREADSHEET_ID = "1uge_TtzAauHqKv7pNViQ6lJ1n6RkKwMWGHJAd92y2fE"
+SHEET_NAME = "Current_Overview" 
+SERVICE_ACCOUNT_FILE = "service_account.json"  
+
+
+def write_to_google_sheet(note_list):
+   
+    if note_list is None:
+        return
+
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=scopes
+    )
+    client = gspread.authorize(creds)
+    sh = client.open_by_key(SPREADSHEET_ID)
+    ws = sh.worksheet(SHEET_NAME)
+
+    header = ["title", "like_count", "time", "url"]
+
+    rows = []
+    for n in note_list:
+        rows.append([
+            n.get("title", ""),
+            n.get("like_count", n.get("liked_count", "")),
+            n.get("time", n.get("note_time", "")),
+            n.get("url", ""),
+        ])
+
+    ws.clear()
+    if rows:
+        ws.append_rows([header] + rows, value_input_option="RAW")
+    else:
+        ws.append_row(header, value_input_option="RAW")
+
+
 if __name__ == '__main__':
-    """
-        此文件为爬虫的入口文件，可以直接运行
-    """
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
-    # ========= 自定义：关键词搜索 =========
-    query = "dtcpay"        # 关键词
-    query_num = 100         # 想拿多少条结果
-    save_choice = "excel"   # 只保存到 Excel，不下载图片/视频
-    excel_name = "dtcpay_xhs"  # 导出的文件名，不用带 .xlsx
+    query = "dtcpay"
+    query_num = 100
+    save_choice = "excel"
+    excel_name = "dtcpay_xhs"
 
-    # 搜索参数（先用最简单的一版）
-    sort_type_choice = 0    # 0 综合排序
-    note_type = 0           # 0 不限类型
-    note_time = 0           # 0 不限时间
-    note_range = 0          # 0 不限范围
-    pos_distance = 0        # 0 不限位置
+    sort_type_choice = 0
+    note_type = 0
+    note_time = 0
+    note_range = 0
+    pos_distance = 0
 
-    data_spider.spider_some_search_note(
+    note_list, success, msg = data_spider.spider_some_search_note(
         query=query,
         require_num=query_num,
         cookies_str=cookies_str,
@@ -143,5 +178,6 @@ if __name__ == '__main__':
         pos_distance=pos_distance,
         geo=None,
         excel_name=excel_name,
-        proxies=None,
     )
+
+    write_to_google_sheet(note_list)
