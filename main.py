@@ -185,12 +185,8 @@ if __name__ == '__main__':
 
     # 品牌 & 对应 sheet 名
     BRANDS = [
-        ("dtcpay", "dtcpay"),
-        ("Revolut", "Revolut"),
-        ("Wise", "Wise"),
-        ("Redotpay", "Redotpay"),
-        ("YouTrip", "YouTrip"),
-        ("FOMOpay", "FOMOpay"),
+    ("YouTrip", "YouTrip"),
+    ("FOMOpay", "FOMOpay"),
     ]
 
     # 通用搜索参数
