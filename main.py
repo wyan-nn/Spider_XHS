@@ -23,6 +23,14 @@ class Data_Spider():
                 note_info = note_info['data']['items'][0]
                 note_info['url'] = note_url
                 note_info = handle_note_info(note_info)
+
+                if os.getenv("PRINT_ONE_NOTE", "0") == "1" and not getattr(self, "_printed_sample", False):
+                    logger.info(
+                        "Sample note_info: " +
+                        json.dumps(note_info, ensure_ascii=False)[:2000]
+                    )
+                    self._printed_sample = True
+
         except Exception as e:
             success = False
             msg = e
