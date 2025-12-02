@@ -4,3 +4,5 @@ loguru
 python-dotenv
 retry
 openpyxl
+gspread
+google-auth
