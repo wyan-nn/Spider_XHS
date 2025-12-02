@@ -11,6 +11,7 @@ from xhs_utils.data_util import handle_note_info, download_note, save_to_xlsx
 class Data_Spider():
     def __init__(self):
         self.xhs_apis = XHS_Apis()
+        self._printed_sample = False  # 只打印一条样本
 
     def spider_note(self, note_url: str, cookies_str: str, proxies=None):
         """
@@ -24,11 +25,9 @@ class Data_Spider():
                 note_info['url'] = note_url
                 note_info = handle_note_info(note_info)
 
-                if os.getenv("PRINT_ONE_NOTE", "0") == "1" and not getattr(self, "_printed_sample", False):
-                    logger.info(
-                        "Sample note_info: " +
-                        json.dumps(note_info, ensure_ascii=False)[:2000]
-                    )
+                # 调试用：只打印第一条 note 的完整结构
+                if os.getenv("PRINT_ONE_NOTE", "0") == "1" and not self._printed_sample:
+                    logger.info("Sample note_info: " + json.dumps(note_info, ensure_ascii=False)[:2000])
                     self._printed_sample = True
 
         except Exception as e:
@@ -101,6 +100,8 @@ class Data_Spider():
         """
         note_urls = []
         note_info_list = []
+        success = False
+        msg = None
 
         try:
             success, msg, notes = self.xhs_apis.search_some_note(
@@ -117,7 +118,7 @@ class Data_Spider():
                     note_urls.append(note_url)
 
             if save_choice == 'all' or save_choice == 'excel':
-                excel_name = query
+                excel_name = excel_name or query
 
             note_info_list = self.spider_some_note(note_urls, cookies_str, base_path,
                                                    save_choice, excel_name, proxies)
@@ -133,15 +134,14 @@ class Data_Spider():
 
 # ===== Google Sheet 配置 =====
 SPREADSHEET_ID = "1uge_TtzAauHqKv7pNViQ6lJ1n6RkKwMWGHJAd92y2fE"
-SHEET_NAME = "Current_Overview"
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-
-def write_to_google_sheet(note_list):
+def write_to_google_sheet(note_list, sheet_name: str):
     """
-    把 note_list 写入 Google Sheet
+    把 note_list 写入指定 sheet（tab）
     """
     if not note_list:
+        logger.info(f"{sheet_name}: note_list 为空，跳过写入")
         return
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -150,55 +150,77 @@ def write_to_google_sheet(note_list):
     )
     client = gspread.authorize(creds)
     sh = client.open_by_key(SPREADSHEET_ID)
-    ws = sh.worksheet(SHEET_NAME)
+    ws = sh.worksheet(sheet_name)
 
-    header = ["title", "like_count", "time", "url"]
+    header = [
+        "title", "desc",
+        "like_count", "collect_count", "comment_count", "share_count",
+        "author", "author_id",
+        "publish_time", "url"
+    ]
+
     rows = []
-
     for n in note_list:
         rows.append([
             n.get("title", ""),
-            n.get("like_count", n.get("liked_count", "")),
-            n.get("time", n.get("note_time", "")),
-            n.get("url", ""),
+            (n.get("desc", "")[:100] + "...") if n.get("desc") else "",
+            n.get("liked_count", ""),
+            n.get("collected_count", ""),
+            n.get("comment_count", ""),
+            n.get("share_count", ""),
+            n.get("nickname", ""),
+            n.get("user_id", ""),
+            n.get("time", n.get("created_time", "")),
+            n.get("url", "")
         ])
 
     ws.clear()
-    if rows:
-        ws.append_rows([header] + rows, value_input_option="RAW")
-    else:
-        ws.append_row(header, value_input_option="RAW")
+    ws.append_rows([header] + rows, value_input_option="RAW")
+    logger.info(f"{sheet_name}: 已写入 {len(rows)} 条笔记")
 
 
 if __name__ == '__main__':
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
-    query = "dtcpay"
-    query_num = 100
-    save_choice = "excel"
-    excel_name = "dtcpay_xhs"
+    # 品牌 & 对应 sheet 名
+    BRANDS = [
+        ("dtcpay", "dtcpay"),
+        ("Revolut", "Revolut"),
+        ("Wise", "Wise"),
+        ("Redotpay", "Redotpay"),
+        ("YouTrip", "YouTrip"),
+        ("FOMOpay", "FOMOpay"),
+    ]
 
+    # 通用搜索参数
+    query_num = 100
+    save_choice = "excel" 
     sort_type_choice = 0
     note_type = 0
     note_time = 0
     note_range = 0
     pos_distance = 0
 
-    note_list, success, msg = data_spider.spider_some_search_note(
-        query=query,
-        require_num=query_num,
-        cookies_str=cookies_str,
-        base_path=base_path,
-        save_choice=save_choice,
-        sort_type_choice=sort_type_choice,
-        note_type=note_type,
-        note_time=note_time,
-        note_range=note_range,
-        pos_distance=pos_distance,
-        geo=None,
-        excel_name=excel_name,
-    )
+    for keyword, sheet_name in BRANDS:
+        excel_name = f"{keyword}_xhs"
 
-    logger.info(f"搜索 {query} 完成，success={success}, msg={msg}, 爬到 {len(note_list)} 条笔记")
-    write_to_google_sheet(note_list)
+        note_list, success, msg = data_spider.spider_some_search_note(
+            query=keyword,
+            require_num=query_num,
+            cookies_str=cookies_str,
+            base_path=base_path,
+            save_choice=save_choice,
+            sort_type_choice=sort_type_choice,
+            note_type=note_type,
+            note_time=note_time,
+            note_range=note_range,
+            pos_distance=pos_distance,
+            geo=None,
+            excel_name=excel_name,
+        )
+
+        logger.info(
+            f"[{sheet_name}] 搜索 {keyword} 完成，success={success}, msg={msg}, 爬到 {len(note_list)} 条笔记"
+        )
+        write_to_google_sheet(note_list, sheet_name)
