@@ -87,23 +87,22 @@ def write_to_google_sheet(note_list):
         "title", "desc",
         "like_count", "collect_count", "comment_count", "share_count",
         "author", "author_id",
-        "publish_time", "ip", "url"
+        "ip", "url"
     ]
 
     rows = []
     for n in note_list:
         rows.append([
             n.get("title", ""),
-            n.get("desc", "")[:100] + "...",
+            n.get("desc", ""),  
             n.get("liked_count", 0),
             n.get("collected_count", 0),
             n.get("comment_count", 0),
             n.get("share_count", 0),
             n.get("nickname", ""),
             n.get("user_id", ""),
-            n.get("time", n.get("created_time", "")),
             n.get("ip_location", ""),
-            n.get("url", "")
+            n.get("note_url1") or n.get("note_url") or n.get("url", ""),
         ])
 
     ws.clear()
@@ -115,15 +114,29 @@ if __name__ == '__main__':
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
-    keyword = "dtcpay"
-    require_num = 10
+    BRANDS = ["dtcpay", "Revolut", "Wise", "YouTrip", "Redotpay", "FOMOpay"]
+    require_num_each = 100
 
-    note_list, success, msg = data_spider.spider_some_search_note(
-        query=keyword,
-        require_num=require_num,
-        cookies_str=cookies_str,
-    )
+    all_notes = []
 
-    logger.info(f"[{keyword}] success={success}, msg={msg}, 数量={len(note_list)}")
+    import time, random
 
-    write_to_google_sheet(note_list)
+    for keyword in BRANDS:
+        logger.info(f"开始爬取品牌：{keyword}")
+        note_list, success, msg = data_spider.spider_some_search_note(
+            query=keyword,
+            require_num=require_num_each,
+            cookies_str=cookies_str,
+        )
+
+        for n in note_list:
+            n["brand"] = keyword
+
+        logger.info(f"[{keyword}] success={success}, msg={msg}, 数量={len(note_list)}")
+        all_notes.extend(note_list)
+
+        sleep_sec = random.uniform(10, 20)
+        logger.info(f"品牌 {keyword} 完成，休眠 {sleep_sec:.1f} 秒再继续下一家")
+        time.sleep(sleep_sec)
+
+    write_to_google_sheet(all_notes)
