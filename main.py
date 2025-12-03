@@ -113,16 +113,14 @@ if __name__ == '__main__':
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
+    # 这次只重爬后三个品牌
     BRANDS = [
-        ("dtcpay",   "dtcpay_v2"),
-        ("Revolut",  "Revolut_v2"),
-        ("Wise",     "Wise_v2"),
         ("YouTrip",  "YouTrip_v2"),
         ("Redotpay", "Redotpay_v2"),
         ("FOMOpay",  "FOMOpay_v2"),
     ]
 
-    require_num_each = 100
+    require_num_each = 100  # 或者你可以先调小一点，比如 70，看风控情况
 
     import time, random
 
