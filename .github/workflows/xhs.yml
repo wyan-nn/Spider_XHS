@@ -2,7 +2,7 @@ name: Crawl XHS and write to Google Sheet
 
 on:
   workflow_dispatch:
-  schedule:
+  # schedule:
     # 每周日 SGT 23:59 运行（转换为 UTC 15:59）
     # - cron: "59 15 * * 0"
 
