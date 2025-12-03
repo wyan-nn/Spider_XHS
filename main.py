@@ -67,16 +67,11 @@ class Data_Spider():
 
 
 # ===== Google Sheet 配置 =====
-SPREADSHEET_ID = "1uge_TtzAauHqKv7pNViQ6lJ1n6RkKwMWGHJAd92y2fE"  
+SPREADSHEET_ID = "1uge_TtzAauHqKv7pNViQ6lJ1n6RkKwMWGHJAd92y2fE"
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
-def write_to_google_sheet(note_list):
-    sheet_name = "XHSv2"
-
-    if not note_list:
-        logger.info("note_list 为空，跳过写入")
-        return
-
+def write_to_google_sheet(note_list, sheet_name: str):
+    
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
     client = gspread.authorize(creds)
@@ -90,11 +85,15 @@ def write_to_google_sheet(note_list):
         "ip", "url"
     ]
 
+    if not note_list:
+        logger.info(f"{sheet_name}: 本次 note_list 为空，不覆盖上一次数据")
+        return
+
     rows = []
     for n in note_list:
         rows.append([
             n.get("title", ""),
-            n.get("desc", ""),  
+            n.get("desc", ""),
             n.get("liked_count", 0),
             n.get("collected_count", 0),
             n.get("comment_count", 0),
@@ -107,21 +106,27 @@ def write_to_google_sheet(note_list):
 
     ws.clear()
     ws.append_rows([header] + rows)
-    logger.info(f"已写入 {len(rows)} 条数据到 XHSv2")
+    logger.info(f"{sheet_name}: 已写入 {len(rows)} 条数据")
 
 
 if __name__ == '__main__':
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
-    BRANDS = ["dtcpay", "Revolut", "Wise", "YouTrip", "Redotpay", "FOMOpay"]
-    require_num_each = 100
+    BRANDS = [
+        ("dtcpay",   "dtcpay_v2"),
+        ("Revolut",  "Revolut_v2"),
+        ("Wise",     "Wise_v2"),
+        ("YouTrip",  "YouTrip_v2"),
+        ("Redotpay", "Redotpay_v2"),
+        ("FOMOpay",  "FOMOpay_v2"),
+    ]
 
-    all_notes = []
+    require_num_each = 100
 
     import time, random
 
-    for keyword in BRANDS:
+    for keyword, sheet_name in BRANDS:
         logger.info(f"开始爬取品牌：{keyword}")
         note_list, success, msg = data_spider.spider_some_search_note(
             query=keyword,
@@ -129,14 +134,13 @@ if __name__ == '__main__':
             cookies_str=cookies_str,
         )
 
-        for n in note_list:
-            n["brand"] = keyword
+        logger.info(
+            f"[{sheet_name}] 搜索 {keyword} 完成，success={success}, msg={msg}, "
+            f"爬到 {len(note_list)} 条笔记"
+        )
 
-        logger.info(f"[{keyword}] success={success}, msg={msg}, 数量={len(note_list)}")
-        all_notes.extend(note_list)
+        write_to_google_sheet(note_list, sheet_name)
 
         sleep_sec = random.uniform(10, 20)
         logger.info(f"品牌 {keyword} 完成，休眠 {sleep_sec:.1f} 秒再继续下一家")
         time.sleep(sleep_sec)
-
-    write_to_google_sheet(all_notes)
