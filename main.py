@@ -123,8 +123,8 @@ if __name__ == '__main__':
     # 只重爬前三个品牌
     BRANDS = [
         ("dtcpay",  "dtcpay_Jan26"),
-      #  ("Revolut", "Revolut_Jan26"),
-      #  ("Wise",  "Wise_Jan26"),
+        ("Revolut", "Revolut_Jan26"),
+        ("Wise",  "Wise_Jan26"),
     ]
 
     require_num_each = 100  # 或者你可以先调小一点，比如 70，看风控情况
