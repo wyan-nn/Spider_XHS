@@ -113,11 +113,11 @@ if __name__ == '__main__':
     cookies_str, base_path = init()
     data_spider = Data_Spider()
 
-    # 这次只重爬后三个品牌
+    # 只重爬前三个品牌
     BRANDS = [
-        ("YouTrip",  "YouTrip_v2"),
-        ("Redotpay", "Redotpay_v2"),
-        ("FOMOpay",  "FOMOpay_v2"),
+        ("dtcpay",  "dtcpay_Jan26"),
+        ("Revolut", "Revolut_Jan26"),
+        ("Wise",  "Wise_Jan26"),
     ]
 
     require_num_each = 100  # 或者你可以先调小一点，比如 70，看风控情况
