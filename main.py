@@ -14,26 +14,35 @@ class Data_Spider():
         self._printed_sample = False
 
     def spider_note(self, note_url: str, cookies_str: str, proxies=None):
-        note_info = None
-        try:
-            success, msg, note_info = self.xhs_apis.get_note_info(note_url, cookies_str, proxies)
-            if success:
-                note = note_info['data']['items'][0]
+    note = None
+    note_info = None
+    success = False
+    msg = None
 
-                # 自定义字段
-                note['url'] = note_url
-                note = handle_note_info(note)
+    try:
+        success, msg, note_info = self.xhs_apis.get_note_info(note_url, cookies_str, proxies)
 
-                if not self._printed_sample:
-                    logger.info("Sample note: " + json.dumps(note, ensure_ascii=False)[:2000])
-                    self._printed_sample = True
+        if success and note_info and note_info.get("data", {}).get("items"):
+            note = note_info["data"]["items"][0]
 
-        except Exception as e:
-            success = False
-            msg = e
+            note["url"] = note_url
+            note = handle_note_info(note)
 
-        logger.info(f'爬取笔记 {note_url}: {success}, msg={msg}')
-        return success, msg, note
+            if not self._printed_sample:
+                logger.info("Sample note: " + json.dumps(note, ensure_ascii=False)[:2000])
+                self._printed_sample = True
+
+        else:
+            # 关键：把“为什么失败”打印出来，不要只显示一个 'msg'
+            logger.warning(f"get_note_info failed: url={note_url}, success={success}, msg={msg}")
+
+    except Exception as e:
+        success = False
+        msg = repr(e)
+        logger.exception(e)
+
+    logger.info(f"爬取笔记 {note_url}: {success}, msg={msg}")
+    return success, msg, note
 
     def spider_some_search_note(self, query: str, require_num: int, cookies_str: str, proxies=None):
         note_urls = []
@@ -116,8 +125,8 @@ if __name__ == '__main__':
     # 只重爬前三个品牌
     BRANDS = [
         ("dtcpay",  "dtcpay_Jan26"),
-        ("Revolut", "Revolut_Jan26"),
-        ("Wise",  "Wise_Jan26"),
+      #  ("Revolut", "Revolut_Jan26"),
+      #  ("Wise",  "Wise_Jan26"),
     ]
 
     require_num_each = 100  # 或者你可以先调小一点，比如 70，看风控情况
