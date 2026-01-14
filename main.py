@@ -13,7 +13,7 @@ class Data_Spider():
         self.xhs_apis = XHS_Apis()
         self._printed_sample = False
 
-    def spider_note(self, note_url: str, cookies_str: str, proxies=None):
+def spider_note(self, note_url: str, cookies_str: str, proxies=None):
     note = None
     note_info = None
     success = False
@@ -31,9 +31,7 @@ class Data_Spider():
             if not self._printed_sample:
                 logger.info("Sample note: " + json.dumps(note, ensure_ascii=False)[:2000])
                 self._printed_sample = True
-
         else:
-            # 关键：把“为什么失败”打印出来，不要只显示一个 'msg'
             logger.warning(f"get_note_info failed: url={note_url}, success={success}, msg={msg}")
 
     except Exception as e:
@@ -64,7 +62,7 @@ class Data_Spider():
                     note_urls.append(url)
 
                 for url in note_urls:
-                    s, m, note_info = self.spider_note(url, cookies_str)
+                    s, m, note_info = self.spider_note(url, cookies_str, proxies=proxies)
                     if s and note_info:
                         note_info_list.append(note_info)
 
