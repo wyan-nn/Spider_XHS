@@ -13,34 +13,34 @@ class Data_Spider():
         self.xhs_apis = XHS_Apis()
         self._printed_sample = False
 
-def spider_note(self, note_url: str, cookies_str: str, proxies=None):
-    note = None
-    note_info = None
-    success = False
-    msg = None
-
-    try:
-        success, msg, note_info = self.xhs_apis.get_note_info(note_url, cookies_str, proxies)
-
-        if success and note_info and note_info.get("data", {}).get("items"):
-            note = note_info["data"]["items"][0]
-
-            note["url"] = note_url
-            note = handle_note_info(note)
-
-            if not self._printed_sample:
-                logger.info("Sample note: " + json.dumps(note, ensure_ascii=False)[:2000])
-                self._printed_sample = True
-        else:
-            logger.warning(f"get_note_info failed: url={note_url}, success={success}, msg={msg}")
-
-    except Exception as e:
+    def spider_note(self, note_url: str, cookies_str: str, proxies=None):
+        note = None
+        note_info = None
         success = False
-        msg = repr(e)
-        logger.exception(e)
+        msg = None
 
-    logger.info(f"爬取笔记 {note_url}: {success}, msg={msg}")
-    return success, msg, note
+        try:
+            success, msg, note_info = self.xhs_apis.get_note_info(note_url, cookies_str, proxies)
+
+            if success and note_info and note_info.get("data", {}).get("items"):
+                note = note_info["data"]["items"][0]
+
+                note["url"] = note_url
+                note = handle_note_info(note)
+
+                if not self._printed_sample:
+                    logger.info("Sample note: " + json.dumps(note, ensure_ascii=False)[:2000])
+                    self._printed_sample = True
+            else:
+                logger.warning(f"get_note_info failed: url={note_url}, success={success}, msg={msg}")
+  
+        except Exception as e:
+            success = False
+            msg = repr(e)
+            logger.exception(e)
+
+        logger.info(f"爬取笔记 {note_url}: {success}, msg={msg}")
+        return success, msg, note
 
     def spider_some_search_note(self, query: str, require_num: int, cookies_str: str, proxies=None):
         note_urls = []
